@@ -18,6 +18,17 @@ const auth_1 = require("../middleware/auth");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
+// Backend route for fetching user count
+router.get('/count', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const count = yield prisma.user.count(); // Prisma query to count users
+        res.json({ count });
+    }
+    catch (error) {
+        console.error('Error retrieving user count:', error);
+        res.status(500).json({ error: 'Error retrieving user' });
+    }
+}));
 // Create a new user (Admin only)
 router.post("/", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

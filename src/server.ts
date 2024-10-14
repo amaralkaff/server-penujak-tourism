@@ -1,24 +1,35 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
+import path from "path";
+
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
-import {
-  authMiddleware,
-  adminMiddleware,
-  AuthRequest,
-} from "./middleware/auth";
+import blogRoutes from "./routes/blog";
+import { authMiddleware, adminMiddleware, AuthRequest } from "./middleware/auth";
 
 dotenv.config();
 
 const app = express();
 
+// Use cors middleware to allow cross-origin requests with credentials
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
 app.use(express.json());
+
+// Serve static files from the "uploads" folder
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+console.log("Serving static files from:", path.join(__dirname, "../uploads"));
 
 // Define routes
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
+app.use("/blogs", blogRoutes);
 
-app.get("/protected", authMiddleware, (req: Request, res: Response) => {
+app.get("/protected", authMiddleware, (req: express.Request, res: express.Response) => {
   const authReq = req as AuthRequest;
   res.json({ message: "This is a protected route", userId: authReq.userId });
 });
@@ -27,7 +38,7 @@ app.get(
   "/admin",
   authMiddleware,
   adminMiddleware,
-  (req: Request, res: Response) => {
+  (req: express.Request, res: express.Response) => {
     const authReq = req as AuthRequest;
     res.json({
       message: "This is an admin-only route",
@@ -37,11 +48,11 @@ app.get(
   }
 );
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (req: express.Request, res: express.Response) => {
   res.send("Hello, World!");
 });
 
-app.use((err: any, req: any, res: any, next: NextFunction) => {
+app.use((err: any, req: any, res: any, next: any) => {
   if (err) {
     console.error(err.stack);
     return res

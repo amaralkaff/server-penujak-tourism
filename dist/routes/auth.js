@@ -30,7 +30,15 @@ router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, functio
                 role: role === "ADMIN" ? "ADMIN" : "USER",
             },
         });
-        res.json({ message: "User registered successfully", userId: user.id });
+        // Generate JWT token
+        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, {
+            expiresIn: "1h",
+        });
+        // Return token and user data in response
+        res.json({
+            token,
+            userId: user.id,
+        });
     }
     catch (error) {
         res.status(500).json({ error: "Error registering user" });
@@ -50,7 +58,15 @@ router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, {
             expiresIn: "1h",
         });
-        res.json({ token, userId: user.id, role: user.role });
+        // Include user data in the response
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                isAdmin: user.role === "ADMIN",
+            },
+        });
     }
     catch (error) {
         res.status(500).json({ error: "Error logging in" });

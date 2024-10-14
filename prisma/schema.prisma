@@ -12,9 +12,22 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  role      Role     @default(USER)
+  blogs     Blog[]   @relation("UserBlogs")
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  image     String?
+  category  String
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation("UserBlogs", fields: [authorId], references: [id])
 }
 
 enum Role {

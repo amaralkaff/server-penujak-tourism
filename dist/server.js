@@ -4,31 +4,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const cors_1 = __importDefault(require("cors")); // Import cors middleware
 const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
+const blog_1 = __importDefault(require("./routes/blog"));
 const auth_2 = require("./middleware/auth");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// CORS configuration
-const corsOptions = {
-    origin: [
-        "https://penujak-tourism.vercel.app",
-        "https://penujak-tourism-git-main-amangly6666s-projects.vercel.app",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-};
-// Apply CORS middleware
-app.use((0, cors_1.default)(corsOptions));
-// Handle preflight requests
-app.options("*", (0, cors_1.default)(corsOptions));
+// Use cors middleware to allow cross-origin requests with credentials
+app.use((0, cors_1.default)({
+    origin: "http://localhost:5173", // Allow requests only from your frontend's origin
+    credentials: true // Enable credentials (cookies, HTTP authentication)
+}));
 app.use(express_1.default.json());
 // Define routes
 app.use("/auth", auth_1.default);
 app.use("/users", users_1.default);
+app.use("/blogs", blog_1.default);
 app.get("/protected", auth_2.authMiddleware, (req, res) => {
     const authReq = req;
     res.json({ message: "This is a protected route", userId: authReq.userId });
@@ -41,11 +34,9 @@ app.get("/admin", auth_2.authMiddleware, auth_2.adminMiddleware, (req, res) => {
         role: authReq.userRole,
     });
 });
-// Home route
 app.get("/", (req, res) => {
     res.send("Hello, World!");
 });
-// Generic Error Handling Middleware
 app.use((err, req, res, next) => {
     if (err) {
         console.error(err.stack);

@@ -6,6 +6,17 @@ import bcrypt from "bcrypt";
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Backend route for fetching user count
+router.get('/count', async (req, res) => {
+  try {
+    const count = await prisma.user.count();  // Prisma query to count users
+    res.json({ count });
+  } catch (error) {
+    console.error('Error retrieving user count:', error);
+    res.status(500).json({ error: 'Error retrieving user' });
+  }
+});
+
 // Create a new user (Admin only)
 router.post(
   "/",
@@ -99,5 +110,7 @@ router.delete(
     }
   }
 );
+
+
 
 export default router;
