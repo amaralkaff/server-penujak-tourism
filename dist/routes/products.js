@@ -19,10 +19,10 @@ const client_1 = require("@prisma/client");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
-const MAX_BLOGS = 50;
-// count blog post
+const MAX_PRODUCTS = 50; // You can adjust this number as needed
+// count product
 router.get("/count", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const count = yield prisma.blog.count();
+    const count = yield prisma.product.count();
     res.json({ count });
 }));
 // Configure multer for file uploads
@@ -46,85 +46,98 @@ const upload = (0, multer_1.default)({
     },
 });
 // Upload image route
-router.post("/upload", upload.single("image"), (req, res) => {
+router.post("/upload", auth_1.authMiddleware, auth_1.adminMiddleware, upload.single("image"), (req, res) => {
     if (!req.file) {
         return res.status(400).send({ error: "Please upload an image." });
     }
     const imageUrl = `/uploads/${req.file.filename}`;
     res.send({ imageUrl });
 });
-// Get all blog posts
+// Get all products
 router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const blogs = yield prisma.blog.findMany({
-            include: { author: { select: { name: true } } },
+        const products = yield prisma.product.findMany({
+            include: { category: true, seller: { select: { name: true } } },
             orderBy: { id: 'asc' },
         });
-        res.json(blogs);
+        res.json(products);
     }
     catch (error) {
-        res.status(500).json({ error: "Error retrieving blog posts" });
+        res.status(500).json({ error: "Error retrieving products" });
     }
 }));
-// Get a single blog post
+// Get a single product
 router.get("/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const blogId = parseInt(req.params.id);
+    const productId = parseInt(req.params.id);
     try {
-        const blog = yield prisma.blog.findUnique({
-            where: { id: blogId },
-            include: { author: { select: { name: true } } },
+        const product = yield prisma.product.findUnique({
+            where: { id: productId },
+            include: { category: true, seller: { select: { name: true } } },
         });
-        if (!blog) {
-            return res.status(404).json({ error: "Blog post not found" });
+        if (!product) {
+            return res.status(404).json({ error: "Product not found" });
         }
-        res.json(blog);
+        res.json(product);
     }
     catch (error) {
-        res.status(500).json({ error: "Error retrieving blog post" });
+        res.status(500).json({ error: "Error retrieving product" });
     }
 }));
-// Create a new blog post (Admin only)
+// Create a new product (Admin only)
 router.post("/", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { title, content, image, category } = req.body;
-    const authorId = req.userId;
+    const { title, description, price, image, categoryId } = req.body;
+    const sellerId = req.userId;
     try {
-        const blogCount = yield prisma.blog.count();
-        if (blogCount >= MAX_BLOGS) {
-            return res.status(400).json({ error: "Maximum number of blog posts reached" });
+        const productCount = yield prisma.product.count();
+        if (productCount >= MAX_PRODUCTS) {
+            return res.status(400).json({ error: "Maximum number of products reached" });
         }
-        const blog = yield prisma.blog.create({
-            data: { title, content, image, category, authorId },
+        const product = yield prisma.product.create({
+            data: {
+                title,
+                description,
+                price: parseFloat(price),
+                image,
+                categoryId: parseInt(categoryId),
+                sellerId,
+            },
         });
-        res.status(201).json(blog);
+        res.status(201).json(product);
     }
     catch (error) {
-        res.status(500).json({ error: "Error creating blog post" });
+        res.status(500).json({ error: "Error creating product" });
     }
 }));
-// Update a blog post (Admin only)
+// Update a product (Admin only)
 router.put("/:id", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const blogId = parseInt(req.params.id);
-    const { title, content, image, category } = req.body;
+    const productId = parseInt(req.params.id);
+    const { title, description, price, image, categoryId } = req.body;
     try {
-        const blog = yield prisma.blog.update({
-            where: { id: blogId },
-            data: { title, content, image, category },
+        const product = yield prisma.product.update({
+            where: { id: productId },
+            data: {
+                title,
+                description,
+                price: parseFloat(price),
+                image,
+                categoryId: parseInt(categoryId),
+            },
         });
-        res.json(blog);
+        res.json(product);
     }
     catch (error) {
-        res.status(500).json({ error: "Error updating blog post" });
+        res.status(500).json({ error: "Error updating product" });
     }
 }));
-// Delete a blog post (Admin only)
+// Delete a product (Admin only)
 router.delete("/:id", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const blogId = parseInt(req.params.id);
+    const productId = parseInt(req.params.id);
     try {
-        yield prisma.blog.delete({ where: { id: blogId } });
-        res.json({ message: "Blog post deleted successfully" });
+        yield prisma.product.delete({ where: { id: productId } });
+        res.json({ message: "Product deleted successfully" });
     }
     catch (error) {
-        res.status(500).json({ error: "Error deleting blog post" });
+        res.status(500).json({ error: "Error deleting product" });
     }
 }));
 exports.default = router;

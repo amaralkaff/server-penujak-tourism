@@ -3,25 +3,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// app.ts (updated)
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const cors_1 = __importDefault(require("cors")); // Import cors middleware
+const cors_1 = __importDefault(require("cors"));
+const path_1 = __importDefault(require("path"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
 const blog_1 = __importDefault(require("./routes/blog"));
+const products_1 = __importDefault(require("./routes/products"));
+const categories_1 = __importDefault(require("./routes/categories"));
 const auth_2 = require("./middleware/auth");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// Use cors middleware to allow cross-origin requests with credentials
 app.use((0, cors_1.default)({
-    origin: "http://localhost:5173", // Allow requests only from your frontend's origin
-    credentials: true // Enable credentials (cookies, HTTP authentication)
+    origin: "http://localhost:5173",
+    credentials: true
 }));
 app.use(express_1.default.json());
+app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "../uploads")));
+console.log("Serving static files from:", path_1.default.join(__dirname, "../uploads"));
 // Define routes
 app.use("/auth", auth_1.default);
 app.use("/users", users_1.default);
 app.use("/blogs", blog_1.default);
+app.use("/products", products_1.default);
+app.use("/categories", categories_1.default);
 app.get("/protected", auth_2.authMiddleware, (req, res) => {
     const authReq = req;
     res.json({ message: "This is a protected route", userId: authReq.userId });

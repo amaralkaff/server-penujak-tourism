@@ -1,3 +1,5 @@
+// schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,14 +10,15 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
   password  String
   name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  role      Role     @default(USER)
-  blogs     Blog[]   @relation("UserBlogs")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  role      Role      @default(USER)
+  blogs     Blog[]    @relation("UserBlogs")
+  products  Product[] @relation("UserProducts")
 }
 
 model Blog {
@@ -28,6 +31,26 @@ model Blog {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   author    User     @relation("UserBlogs", fields: [authorId], references: [id])
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  price       Float
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  Int
+  sellerId    Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  seller      User     @relation("UserProducts", fields: [sellerId], references: [id])
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
 }
 
 enum Role {

@@ -7,7 +7,7 @@ import { authMiddleware, adminMiddleware } from "../middleware/auth";
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const MAX_BLOGS = 5;
+const MAX_BLOGS = 50;
 
 // count blog post
 router.get("/count", async (req, res) => {

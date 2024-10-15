@@ -1,3 +1,4 @@
+// app.ts (updated)
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -6,13 +7,14 @@ import path from "path";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
+import productRoutes from "./routes/products";
+import categoryRoutes from "./routes/categories";
 import { authMiddleware, adminMiddleware, AuthRequest } from "./middleware/auth";
 
 dotenv.config();
 
 const app = express();
 
-// Use cors middleware to allow cross-origin requests with credentials
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true
@@ -20,7 +22,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// Serve static files from the "uploads" folder
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 console.log("Serving static files from:", path.join(__dirname, "../uploads"));
 
@@ -28,6 +29,8 @@ console.log("Serving static files from:", path.join(__dirname, "../uploads"));
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/blogs", blogRoutes);
+app.use("/products", productRoutes);
+app.use("/categories", categoryRoutes);
 
 app.get("/protected", authMiddleware, (req: express.Request, res: express.Response) => {
   const authReq = req as AuthRequest;
