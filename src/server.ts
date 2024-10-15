@@ -1,7 +1,10 @@
+// server.js or app.js
+
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import cors from 'cors';
+import fs from 'fs';
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
@@ -13,7 +16,16 @@ dotenv.config();
 
 const app = express();
 
+// Define the uploads directory
+const uploadsDir = path.resolve(__dirname, '../uploads');
+
+// Ensure the uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 const allowedOrigins = [
+  'http://localhost:3000',
   'http://localhost:5173',
   'https://penujak-tourism.vercel.app',
   'https://5cfd-103-127-132-14.ngrok-free.app'
@@ -23,7 +35,7 @@ app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
-      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
     return callback(null, true);
@@ -33,8 +45,9 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-console.log("Serving static files from:", path.join(__dirname, "../uploads"));
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(uploadsDir));
+console.log("Serving static files from:", uploadsDir);
 
 // Define routes
 app.use("/auth", authRoutes);
@@ -43,26 +56,24 @@ app.use("/blogs", blogRoutes);
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 
-app.get("/protected", authMiddleware, (req: express.Request, res: express.Response) => {
+// Protected route example
+app.get("/protected", authMiddleware, (req, res) => {
   const authReq = req as AuthRequest;
   res.json({ message: "This is a protected route", userId: authReq.userId });
 });
 
-app.get(
-  "/admin",
-  authMiddleware,
-  adminMiddleware,
-  (req: express.Request, res: express.Response) => {
-    const authReq = req as AuthRequest;
-    res.json({
-      message: "This is an admin-only route",
-      userId: authReq.userId,
-      role: authReq.userRole,
-    });
-  }
-);
+// Admin-only route example
+app.get("/admin", authMiddleware, adminMiddleware, (req, res) => {
+  const authReq = req as AuthRequest;
+  res.json({
+    message: "This is an admin-only route",
+    userId: authReq.userId,
+    role: authReq.userRole,
+  });
+});
 
-app.get("/", (req: express.Request, res: express.Response) => {
+// Root route
+app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
 

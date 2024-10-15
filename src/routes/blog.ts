@@ -1,6 +1,9 @@
+// blog.js or blog.ts
+
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
 
@@ -9,18 +12,20 @@ const prisma = new PrismaClient();
 
 const MAX_BLOGS = 50;
 
-// count blog post
-router.get("/count", async (req, res) => {
-  const count = await prisma.blog.count();
-  res.json({ count });
-});
+// Define a common uploads directory
+const uploadsDir = path.resolve(__dirname, '../../uploads');
+
+// Ensure the uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req: any, file: any, cb: any) => {
-    cb(null, path.join(__dirname, '../../uploads/'));
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
   },
-  filename: (req: any, file: any, cb: any) => {
+  filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
@@ -28,9 +33,9 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
-  fileFilter: (req: any, file: any, cb: any) => {
+  fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+    if (!['.jpg', '.jpeg', '.png'].includes(ext)) {
       return cb(new Error('Only images are allowed'));
     }
     cb(null, true);
@@ -46,8 +51,18 @@ router.post("/upload", upload.single("image"), (req: any, res: any) => {
   res.send({ imageUrl });
 });
 
+// Count all blog posts
+router.get("/count", async (req: any, res: any) => {
+  try {
+    const blogCount = await prisma.blog.count();
+    res.json({ count: blogCount });
+  } catch (error) {
+    res.status(500).json({ error: "Error counting blog posts" });
+  }
+});
+
 // Get all blog posts
-router.get("/", async (req: any, res: any) => {
+router.get("/", async (req, res) => {
   try {
     const blogs = await prisma.blog.findMany({
       include: { author: { select: { name: true } } },
@@ -97,7 +112,7 @@ router.post("/", authMiddleware, adminMiddleware, async (req: any, res: any) => 
 });
 
 // Update a blog post (Admin only)
-router.put("/:id", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   const blogId = parseInt(req.params.id);
   const { title, content, image, category } = req.body;
 
@@ -113,7 +128,7 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req: any, res: any) =
 });
 
 // Delete a blog post (Admin only)
-router.delete("/:id", authMiddleware, adminMiddleware, async (req: any, res: any ) => {
+router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   const blogId = parseInt(req.params.id);
 
   try {

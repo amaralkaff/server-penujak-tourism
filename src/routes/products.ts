@@ -1,26 +1,29 @@
+// products.ts
+
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const MAX_PRODUCTS = 50; // You can adjust this number as needed
+// Define a common uploads directory
+const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-// count product
-router.get("/count", async (req, res) => {
-  const count = await prisma.product.count();
-  res.json({ count });
-});
+// Ensure the uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req: any, file: any, cb: any) => {
-    cb(null, path.join(__dirname, '../../uploads/'));
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
   },
-  filename: (req: any, file: any, cb: any) => {
+  filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
@@ -28,9 +31,9 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
-  fileFilter: (req: any, file: any, cb: any) => {
+  fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+    if (!['.jpg', '.jpeg', '.png'].includes(ext)) {
       return cb(new Error('Only images are allowed'));
     }
     cb(null, true);
@@ -38,16 +41,27 @@ const upload = multer({
 });
 
 // Upload image route
-router.post("/upload", authMiddleware, adminMiddleware, upload.single("image"), (req: any, res: any) => {
+router.post("/upload", upload.single("image"), (req: any, res: any) => {
   if (!req.file) {
     return res.status(400).send({ error: "Please upload an image." });
   }
+  // Return the image path relative to the server
   const imageUrl = `/uploads/${req.file.filename}`;
   res.send({ imageUrl });
 });
 
+// Count all products
+router.get("/count", async (req: any, res: any) => {
+  try {
+    const productCount = await prisma.product.count();
+    res.json({ count: productCount });
+  } catch (error) {
+    res.status(500).json({ error: "Error counting products" });
+  }
+});
+
 // Get all products
-router.get("/", async (req: any, res: any) => {
+router.get("/", async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       include: { category: true, seller: { select: { name: true } } },
@@ -82,11 +96,6 @@ router.post("/", authMiddleware, adminMiddleware, async (req: any, res: any) => 
   const sellerId = req.userId;
 
   try {
-    const productCount = await prisma.product.count();
-    if (productCount >= MAX_PRODUCTS) {
-      return res.status(400).json({ error: "Maximum number of products reached" });
-    }
-
     const product = await prisma.product.create({
       data: {
         title,
@@ -104,7 +113,7 @@ router.post("/", authMiddleware, adminMiddleware, async (req: any, res: any) => 
 });
 
 // Update a product (Admin only)
-router.put("/:id", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   const productId = parseInt(req.params.id);
   const { title, description, price, image, categoryId } = req.body;
 
@@ -126,7 +135,7 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req: any, res: any) =
 });
 
 // Delete a product (Admin only)
-router.delete("/:id", authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   const productId = parseInt(req.params.id);
 
   try {
