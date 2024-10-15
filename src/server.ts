@@ -1,10 +1,9 @@
-// server.js or app.js
-
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
-import cors from 'cors';
-import fs from 'fs';
+import cors from "cors";
+import fs from "fs";
+import https from "https";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
@@ -17,7 +16,7 @@ dotenv.config();
 const app = express();
 
 // Define the uploads directory
-const uploadsDir = path.resolve(__dirname, '../uploads');
+const uploadsDir = path.resolve(__dirname, "../uploads");
 
 // Ensure the uploads directory exists
 if (!fs.existsSync(uploadsDir)) {
@@ -25,23 +24,26 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://penujak-tourism.vercel.app',
-  'http://103.127.132.14:3000'
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://penujak-tourism.vercel.app",
+  "https://103.127.132.14",
 ];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -88,8 +90,14 @@ app.use((err: any, req: any, res: any, next: any) => {
   next();
 });
 
+// Load SSL Certificate and Key
+const sslOptions = {
+  key: fs.readFileSync("ssl/key.pem"),
+  cert: fs.readFileSync("ssl/cert.pem"),
+};
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`HTTPS Server is running on port ${PORT}`);
 });
