@@ -1,8 +1,7 @@
-// app.ts (updated)
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
-
+import cors from 'cors';
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
@@ -14,30 +13,23 @@ dotenv.config();
 
 const app = express();
 
-// Allowed origins
 const allowedOrigins = [
+  'http://localhost:5173',
   'https://penujak-tourism.vercel.app',
-  'http://localhost:5173'
+  'https://5cfd-103-127-132-14.ngrok-free.app'
 ];
 
-// Custom CORS Middleware
-app.use((req: any, res: any, next: any) => {
-  const origin = req.headers.origin as string;
-
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204); // No Content
-  }
-
-  next();
-});
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 
 app.use(express.json());
 
