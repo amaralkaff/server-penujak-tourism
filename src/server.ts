@@ -28,7 +28,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'https://penujak-tourism.vercel.app',
-  'https://5cfd-103-127-132-14.ngrok-free.app'
+  'http://103.127.132.14:3000'
 ];
 
 app.use(cors({
