@@ -1,7 +1,6 @@
 // app.ts (updated)
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import path from "path";
 
 import authRoutes from "./routes/auth";
@@ -15,15 +14,30 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    'https://penujak-tourism.vercel.app',
-    'http://localhost:5173'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// Allowed origins
+const allowedOrigins = [
+  'https://penujak-tourism.vercel.app',
+  'http://localhost:5173'
+];
+
+// Custom CORS Middleware
+app.use((req: any, res: any, next: any) => {
+  const origin = req.headers.origin as string;
+
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204); // No Content
+  }
+
+  next();
+});
 
 app.use(express.json());
 
@@ -60,6 +74,7 @@ app.get("/", (req: express.Request, res: express.Response) => {
   res.send("Hello, World!");
 });
 
+// Global Error Handler
 app.use((err: any, req: any, res: any, next: any) => {
   if (err) {
     console.error(err.stack);
