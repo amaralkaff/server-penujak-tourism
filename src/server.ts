@@ -16,7 +16,12 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: "https://penujak-tourism.vercel.app",
+  origin: [
+    'https://penujak-tourism.vercel.app',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
