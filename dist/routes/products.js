@@ -1,4 +1,5 @@
 "use strict";
+// products.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -15,20 +16,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const client_1 = require("@prisma/client");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
-const MAX_PRODUCTS = 50; // You can adjust this number as needed
-// count product
-router.get("/count", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const count = yield prisma.product.count();
-    res.json({ count });
-}));
+// Define a common uploads directory
+const uploadsDir = path_1.default.resolve(__dirname, '../../uploads');
+// Ensure the uploads directory exists
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
 // Configure multer for file uploads
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path_1.default.join(__dirname, '../../uploads/'));
+        cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path_1.default.extname(file.originalname));
@@ -39,20 +41,31 @@ const upload = (0, multer_1.default)({
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
     fileFilter: (req, file, cb) => {
         const ext = path_1.default.extname(file.originalname).toLowerCase();
-        if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+        if (!['.jpg', '.jpeg', '.png'].includes(ext)) {
             return cb(new Error('Only images are allowed'));
         }
         cb(null, true);
     },
 });
 // Upload image route
-router.post("/upload", auth_1.authMiddleware, auth_1.adminMiddleware, upload.single("image"), (req, res) => {
+router.post("/upload", upload.single("image"), (req, res) => {
     if (!req.file) {
         return res.status(400).send({ error: "Please upload an image." });
     }
+    // Return the image path relative to the server
     const imageUrl = `/uploads/${req.file.filename}`;
     res.send({ imageUrl });
 });
+// Count all products
+router.get("/count", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const productCount = yield prisma.product.count();
+        res.json({ count: productCount });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error counting products" });
+    }
+}));
 // Get all products
 router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -88,10 +101,6 @@ router.post("/", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __
     const { title, description, price, image, categoryId } = req.body;
     const sellerId = req.userId;
     try {
-        const productCount = yield prisma.product.count();
-        if (productCount >= MAX_PRODUCTS) {
-            return res.status(400).json({ error: "Maximum number of products reached" });
-        }
         const product = yield prisma.product.create({
             data: {
                 title,

@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import path from "path";
 import cors from "cors";
 import fs from "fs";
-import https from "https";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
@@ -11,7 +10,19 @@ import productRoutes from "./routes/products";
 import categoryRoutes from "./routes/categories";
 import { authMiddleware, adminMiddleware, AuthRequest } from "./middleware/auth";
 
+// Import AppSignal
+import { Appsignal } from "@appsignal/nodejs";
+
+// Load environment variables
 dotenv.config();
+
+// Initialize AppSignal
+const appsignal = new Appsignal({
+  active: process.env.NODE_ENV === 'production',
+  name: "PenujakTourismAPI",
+  pushApiKey: process.env.APPSIGNAL_PUSH_API_KEY,
+  logLevel: "trace" // Set to "trace" for more detailed logs
+}) as any; // Use 'any' type to bypass TypeScript checks
 
 const app = express();
 
@@ -79,20 +90,44 @@ app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
 
-// Global Error Handler
-app.use((err: any, req: any, res: any, next: any) => {
-  if (err) {
-    console.error(err.stack);
-    return res
-      .status(500)
-      .json({ message: "An unexpected error occurred", error: err.message });
-  }
-  next();
+// Test error route
+app.get("/test-error", (req, res, next) => {
+  next(new Error("This is a test error"));
 });
 
+// Custom error handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Error:", err.message);
+  console.error("Stack:", err.stack);
+  
+  if (process.env.NODE_ENV === 'production') {
+    if (appsignal.isActive && typeof appsignal.sendError === 'function') {
+      try {
+        appsignal.sendError(err);
+        console.log("Error sent to AppSignal");
+      } catch (appsignalError) {
+        console.error("Failed to send error to AppSignal:", appsignalError);
+      }
+    } else {
+      console.warn("AppSignal is not active or sendError is not available. Error not sent.");
+    }
+  } else {
+    console.log("AppSignal error reporting is disabled in development mode.");
+  }
+  
+  // Send a generic error message in production
+  const errorMessage = process.env.NODE_ENV === 'production' 
+    ? 'An unexpected error occurred' 
+    : err.message;
+
+  res.status(500).json({ 
+    error: errorMessage,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT} (${process.env.NODE_ENV} mode)`);
 });

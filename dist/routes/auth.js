@@ -20,24 +20,24 @@ const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
 router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, password, name, role } = req.body;
+        const { email, password, name } = req.body;
         const hashedPassword = yield bcrypt_1.default.hash(password, 10);
         const user = yield prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 name,
-                role: role === "ADMIN" ? "ADMIN" : "USER",
+                role: "USER",
             },
         });
-        // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, {
-            expiresIn: "1h",
-        });
-        // Return token and user data in response
+        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
         res.json({
             token,
-            userId: user.id,
+            user: {
+                id: user.id,
+                email: user.email,
+                isAdmin: user.role === "ADMIN",
+            },
         });
     }
     catch (error) {
@@ -55,10 +55,7 @@ router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!validPassword) {
             return res.status(400).json({ error: "Invalid credentials" });
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, {
-            expiresIn: "1h",
-        });
-        // Include user data in the response
+        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
         res.json({
             token,
             user: {
