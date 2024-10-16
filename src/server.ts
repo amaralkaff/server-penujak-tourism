@@ -90,14 +90,9 @@ app.use((err: any, req: any, res: any, next: any) => {
   next();
 });
 
-// Load SSL Certificate and Key
-const sslOptions = {
-  key: fs.readFileSync("ssl/key.pem"),
-  cert: fs.readFileSync("ssl/cert.pem"),
-};
 
 const PORT = process.env.PORT || 3000;
 
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`HTTPS Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
