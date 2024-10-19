@@ -14,17 +14,8 @@ const blog_1 = __importDefault(require("./routes/blog"));
 const products_1 = __importDefault(require("./routes/products"));
 const categories_1 = __importDefault(require("./routes/categories"));
 const auth_2 = require("./middleware/auth");
-// Import AppSignal
-const nodejs_1 = require("@appsignal/nodejs");
 // Load environment variables
 dotenv_1.default.config();
-// Initialize AppSignal
-const appsignal = new nodejs_1.Appsignal({
-    active: process.env.NODE_ENV === 'production',
-    name: "PenujakTourismAPI",
-    pushApiKey: process.env.APPSIGNAL_PUSH_API_KEY,
-    logLevel: "trace" // Set to "trace" for more detailed logs
-}); // Use 'any' type to bypass TypeScript checks
 const app = (0, express_1.default)();
 // Define the uploads directory
 const uploadsDir = path_1.default.resolve(__dirname, "../uploads");
@@ -86,23 +77,6 @@ app.get("/test-error", (req, res, next) => {
 app.use((err, req, res, next) => {
     console.error("Error:", err.message);
     console.error("Stack:", err.stack);
-    if (process.env.NODE_ENV === 'production') {
-        if (appsignal.isActive && typeof appsignal.sendError === 'function') {
-            try {
-                appsignal.sendError(err);
-                console.log("Error sent to AppSignal");
-            }
-            catch (appsignalError) {
-                console.error("Failed to send error to AppSignal:", appsignalError);
-            }
-        }
-        else {
-            console.warn("AppSignal is not active or sendError is not available. Error not sent.");
-        }
-    }
-    else {
-        console.log("AppSignal error reporting is disabled in development mode.");
-    }
     // Send a generic error message in production
     const errorMessage = process.env.NODE_ENV === 'production'
         ? 'An unexpected error occurred'

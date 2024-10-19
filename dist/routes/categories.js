@@ -12,19 +12,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// routes/categories.ts
 const express_1 = __importDefault(require("express"));
 const client_1 = require("@prisma/client");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
-// count categories
+// Count categories
 router.get("/count", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const count = yield prisma.category.count();
         res.json({ count });
     }
     catch (error) {
+        console.error("Error counting categories:", error);
         res.status(500).json({ error: "Error counting categories" });
     }
 }));
@@ -35,6 +35,7 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.json(categories);
     }
     catch (error) {
+        console.error("Error retrieving categories:", error);
         res.status(500).json({ error: "Error retrieving categories" });
     }
 }));
@@ -47,11 +48,14 @@ router.get("/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             include: { products: true },
         });
         if (!category) {
-            return res.status(404).json({ error: "Category not found" });
+            res.status(404).json({ error: "Category not found" });
         }
-        res.json(category);
+        else {
+            res.json(category);
+        }
     }
     catch (error) {
+        console.error("Error retrieving category:", error);
         res.status(500).json({ error: "Error retrieving category" });
     }
 }));
@@ -65,6 +69,7 @@ router.post("/", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => __
         res.status(201).json(category);
     }
     catch (error) {
+        console.error("Error creating category:", error);
         res.status(500).json({ error: "Error creating category" });
     }
 }));
@@ -80,6 +85,7 @@ router.put("/:id", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) => 
         res.json(category);
     }
     catch (error) {
+        console.error("Error updating category:", error);
         res.status(500).json({ error: "Error updating category" });
     }
 }));
@@ -91,6 +97,7 @@ router.delete("/:id", auth_1.authMiddleware, auth_1.adminMiddleware, (req, res) 
         res.json({ message: "Category deleted successfully" });
     }
     catch (error) {
+        console.error("Error deleting category:", error);
         res.status(500).json({ error: "Error deleting category" });
     }
 }));

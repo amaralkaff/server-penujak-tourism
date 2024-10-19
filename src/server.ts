@@ -2,32 +2,50 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import cors from "cors";
-import fs from "fs";
+import Redis from "ioredis";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
 import blogRoutes from "./routes/blog";
 import productRoutes from "./routes/products";
 import categoryRoutes from "./routes/categories";
-import { authMiddleware, adminMiddleware, AuthRequest } from "./middleware/auth";
-
-// Import AppSignal
-import { Appsignal } from "@appsignal/nodejs";
+import { errorHandler } from "./middleware/errorHandler";
+import fs from "fs";  
 
 // Load environment variables
 dotenv.config();
 
-// Initialize AppSignal
-const appsignal = new Appsignal({
-  active: process.env.NODE_ENV === 'production',
-  name: "PenujakTourismAPI",
-  pushApiKey: process.env.APPSIGNAL_PUSH_API_KEY,
-  logLevel: "trace" // Set to "trace" for more detailed logs
-}) as any; // Use 'any' type to bypass TypeScript checks
-
 const app = express();
 
+// Redis setup
+let redis: Redis | null = null;
+try {
+  console.log("Attempting to connect to Redis...");
+  redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+  
+  redis.on("connect", () => {
+    console.log("Successfully connected to Redis");
+  });
+
+  redis.on("error", (error) => {
+    console.warn("Redis error, falling back to database:", error);
+    redis = null;
+  });
+
+  // Test the connection
+  redis.ping().then(() => {
+    console.log("Redis PING successful");
+  }).catch((error) => {
+    console.error("Redis PING failed:", error);
+    redis = null;
+  });
+
+} catch (error) {
+  console.warn("Failed to initialize Redis, falling back to database:", error);
+  redis = null;
+}
+
 // Define the uploads directory
-const uploadsDir = path.resolve(__dirname, "../uploads");
+const uploadsDir = path.resolve(__dirname, '../uploads');
 
 // Ensure the uploads directory exists
 if (!fs.existsSync(uploadsDir)) {
@@ -69,65 +87,17 @@ app.use("/blogs", blogRoutes);
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 
-// Protected route example
-app.get("/protected", authMiddleware, (req, res) => {
-  const authReq = req as AuthRequest;
-  res.json({ message: "This is a protected route", userId: authReq.userId });
-});
-
-// Admin-only route example
-app.get("/admin", authMiddleware, adminMiddleware, (req, res) => {
-  const authReq = req as AuthRequest;
-  res.json({
-    message: "This is an admin-only route",
-    userId: authReq.userId,
-    role: authReq.userRole,
-  });
-});
-
 // Root route
 app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
 
-// Test error route
-app.get("/test-error", (req, res, next) => {
-  next(new Error("This is a test error"));
-});
-
-// Custom error handler
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Error:", err.message);
-  console.error("Stack:", err.stack);
-  
-  if (process.env.NODE_ENV === 'production') {
-    if (appsignal.isActive && typeof appsignal.sendError === 'function') {
-      try {
-        appsignal.sendError(err);
-        console.log("Error sent to AppSignal");
-      } catch (appsignalError) {
-        console.error("Failed to send error to AppSignal:", appsignalError);
-      }
-    } else {
-      console.warn("AppSignal is not active or sendError is not available. Error not sent.");
-    }
-  } else {
-    console.log("AppSignal error reporting is disabled in development mode.");
-  }
-  
-  // Send a generic error message in production
-  const errorMessage = process.env.NODE_ENV === 'production' 
-    ? 'An unexpected error occurred' 
-    : err.message;
-
-  res.status(500).json({ 
-    error: errorMessage,
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
-  });
-});
+// Use error handler middleware
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT} (${process.env.NODE_ENV} mode)`);
 });
+
+export { redis };
