@@ -12,12 +12,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// auth.ts
 const express_1 = __importDefault(require("express"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
+const redisUtils_1 = require("../utils/redisUtils");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
+const redis = (0, redisUtils_1.getRedisClient)();
 router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password, name } = req.body;
@@ -41,6 +44,7 @@ router.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, functio
         });
     }
     catch (error) {
+        console.error("Error registering user:", error);
         res.status(500).json({ error: "Error registering user" });
     }
 }));
@@ -66,6 +70,7 @@ router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
     catch (error) {
+        console.error("Error logging in:", error);
         res.status(500).json({ error: "Error logging in" });
     }
 }));

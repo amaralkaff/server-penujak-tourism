@@ -1,11 +1,11 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
-import { redis } from "../server";
+import { getRedisClient } from "../utils/redisUtils";
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
+const redis = getRedisClient();
 // Helper function to get or set cache
 async function getOrSetCache(key: string, cb: () => Promise<any>) {
   if (!redis) {

@@ -5,7 +5,7 @@ import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
 import sharp from "sharp";
-import { redis } from "../server";
+import { getRedisClient } from "../utils/redisUtils";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -36,6 +36,7 @@ const upload = multer({
 
 // Helper function to get or set cache
 async function getOrSetCache(key: string, cb: () => Promise<any>) {
+  const redis = getRedisClient();
   if (!redis) {
     return await cb();
   }
@@ -166,6 +167,7 @@ router.post("/", authMiddleware, adminMiddleware, async (req: express.Request, r
     });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del("blogs:all", "blog:count");
     }
@@ -188,6 +190,7 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req: express.Request,
     });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del(`blog:${blogId}`, "blogs:all");
     }
@@ -206,6 +209,7 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req: express.Reque
     await prisma.blog.delete({ where: { id: blogId } });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del(`blog:${blogId}`, "blogs:all", "blog:count");
     }

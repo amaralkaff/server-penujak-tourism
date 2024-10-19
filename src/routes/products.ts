@@ -5,7 +5,7 @@ import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, adminMiddleware } from "../middleware/auth";
 import sharp from "sharp";
-import { redis } from "../server";
+import { getRedisClient } from "../utils/redisUtils";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -35,6 +35,7 @@ const upload = multer({
 
 // Helper function to get or set cache
 async function getOrSetCache(key: string, cb: () => Promise<any>) {
+  const redis = getRedisClient();
   if (!redis) {
     return await cb();
   }
@@ -189,6 +190,7 @@ router.post("/", authMiddleware, adminMiddleware, async (req: express.Request, r
     });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del("products:all", "product:count");
     }
@@ -218,6 +220,7 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req: express.Request,
     });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del(`product:${productId}`, "products:all");
     }
@@ -237,6 +240,7 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req: express.Reque
     await prisma.product.delete({ where: { id: productId } });
     
     // Invalidate relevant caches
+    const redis = getRedisClient();
     if (redis) {
       await redis.del(`product:${productId}`, "products:all", "product:count");
     }
