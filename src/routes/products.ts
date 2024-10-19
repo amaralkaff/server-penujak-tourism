@@ -52,6 +52,19 @@ async function getOrSetCache(key: string, cb: () => Promise<any>) {
   }
 }
 
+// Helper function to check if buffer is an image
+function isImage(buffer: Buffer): boolean {
+  const imageSignatures = [
+    [0xFF, 0xD8, 0xFF], // JPEG
+    [0x89, 0x50, 0x4E, 0x47], // PNG
+    [0x47, 0x49, 0x46], // GIF
+  ];
+
+  return imageSignatures.some(signature => 
+    signature.every((byte, index) => buffer[index] === byte)
+  );
+}
+
 // Upload image route
 router.post("/upload", upload.single("image"), async (req: any, res: any) => {
   if (!req.file) {
@@ -63,6 +76,14 @@ router.post("/upload", upload.single("image"), async (req: any, res: any) => {
     mimetype: req.file.mimetype,
     size: req.file.size
   });
+
+  // Check if the buffer contains an image
+  if (!isImage(req.file.buffer)) {
+    console.error("Received file is not an image");
+    const previewBuffer = req.file.buffer.slice(0, 100);
+    console.error("File preview:", previewBuffer.toString('hex'));
+    return res.status(400).json({ error: "The uploaded file is not a valid image." });
+  }
 
   const filename = Date.now() + path.extname(req.file.originalname);
   const filepath = path.join(uploadsDir, filename);
@@ -224,6 +245,27 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req: express.Reque
   } catch (error) {
     console.error("Error deleting product:", error);
     res.status(500).json({ error: "Error deleting product" });
+  }
+});
+
+// Search products
+router.get("/search/:query", async (req: express.Request, res: express.Response) => {
+  const query = req.params.query;
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      include: { category: true, seller: { select: { name: true } } },
+      orderBy: { id: 'asc' },
+    });
+    res.json(products);
+  } catch (error) {
+    console.error("Error searching products:", error);
+    res.status(500).json({ error: "Error searching products" });
   }
 });
 
