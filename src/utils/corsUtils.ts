@@ -7,6 +7,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://penujak-tourism.vercel.app",
   "https://103.127.132.14",
+  "https://amangly.penujaktourism.online"
 ];
 
 export const corsOptions = cors({
