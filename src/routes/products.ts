@@ -13,6 +13,11 @@ const prisma = new PrismaClient();
 // Define a common uploads directory
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
+// Ensure the uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 
@@ -48,16 +53,29 @@ async function getOrSetCache(key: string, cb: () => Promise<any>) {
 }
 
 // Upload image route
-router.post("/upload", upload.single("image"), async (req: express.Request, res: express.Response) => {
+router.post("/upload", upload.single("image"), async (req: any, res: any) => {
   if (!req.file) {
-    res.status(400).json({ error: "Please upload an image." });
-    return;
+    return res.status(400).json({ error: "Please upload an image." });
   }
+
+  console.log("Received file:", {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size
+  });
 
   const filename = Date.now() + path.extname(req.file.originalname);
   const filepath = path.join(uploadsDir, filename);
 
   try {
+    // Check if the file is actually an image
+    const metadata = await sharp(req.file.buffer).metadata();
+    console.log("Image metadata:", metadata);
+
+    if (!metadata.format) {
+      throw new Error("Invalid image format");
+    }
+
     // Optimize and save the image
     await sharp(req.file.buffer)
       .resize(800) // Resize to max width of 800px
@@ -68,7 +86,13 @@ router.post("/upload", upload.single("image"), async (req: express.Request, res:
     res.json({ imageUrl });
   } catch (error) {
     console.error("Error processing image:", error);
-    res.status(500).json({ error: "Error processing image" });
+    
+    // Log the first few bytes of the file for debugging
+    const previewBuffer = req.file.buffer.slice(0, 100);
+    console.error("File preview:", previewBuffer.toString('hex'));
+    
+    fs.writeFileSync(path.join(uploadsDir, 'error_file_' + Date.now()), req.file.buffer);
+    res.status(500).json({ error: "Error processing image", details: (error as Error).message });
   }
 });
 
