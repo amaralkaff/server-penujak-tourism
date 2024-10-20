@@ -9,7 +9,6 @@ import productRoutes from "./routes/products";
 import categoryRoutes from "./routes/categories";
 import { errorHandler } from "./middleware/errorHandler";
 import { initRedis } from "./utils/redisUtils";
-import { createRateLimiter } from "./utils/rateLimitUtils";
 import { corsOptions } from "./utils/corsUtils";
 import { getUploadsDirectory } from "./utils/fileUtils";
 import setupGracefulShutdown from "./utils/gracefulShutdown";
@@ -23,14 +22,13 @@ const app = express();
 initRedis().catch(console.error);
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(compression());
 app.use(corsOptions);
 app.use(express.json({ limit: "10kb" }));
 
-// Rate limiting middleware
-const limiter = createRateLimiter();
-app.use(limiter);
 
 // Serve static files from the uploads directory
 const uploadsDir = getUploadsDirectory();
