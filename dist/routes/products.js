@@ -23,7 +23,7 @@ const redisUtils_1 = require("../utils/redisUtils");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
 // Define a common uploads directory
-const uploadsDir = path_1.default.resolve(__dirname, '../../uploads');
+const uploadsDir = path_1.default.resolve(__dirname, '../uploads');
 // Ensure the uploads directory exists
 if (!fs_1.default.existsSync(uploadsDir)) {
     fs_1.default.mkdirSync(uploadsDir, { recursive: true });

@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 const MAX_BLOGS = 50;
 
 // Define a common uploads directory
-const uploadsDir = path.resolve(__dirname, '../../uploads');
+const uploadsDir = path.resolve(__dirname, '../uploads');
 
 // Ensure the uploads directory exists
 if (!fs.existsSync(uploadsDir)) {

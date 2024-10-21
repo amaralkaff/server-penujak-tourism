@@ -14,7 +14,7 @@ const ensureDirectoryExists = (dirPath) => {
 };
 exports.ensureDirectoryExists = ensureDirectoryExists;
 const getUploadsDirectory = () => {
-    const uploadsDir = path_1.default.resolve(__dirname, '../../uploads');
+    const uploadsDir = path_1.default.resolve(__dirname, 'uploads');
     (0, exports.ensureDirectoryExists)(uploadsDir);
     return uploadsDir;
 };

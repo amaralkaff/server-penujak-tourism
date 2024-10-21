@@ -10,7 +10,7 @@ export const ensureDirectoryExists = (dirPath: string): void => {
 };
 
 export const getUploadsDirectory = (): string => {
-  const uploadsDir = path.resolve(__dirname, '../../uploads');
+  const uploadsDir = path.resolve(__dirname, 'uploads');
   ensureDirectoryExists(uploadsDir);
   return uploadsDir;
 };
